@@ -70,4 +70,23 @@ emailRouter.post("/all", async (req: Request, res: Response) => {
   }
 });
 
+emailRouter.post("/sendEmail", async (req: Request, res: Response) => {
+  try {
+    const { email, subject, html_template } = req.body;
+
+    const options = {
+      from: "noreply@tenderonline.in",
+      to: email,
+      subject,
+      html: html_template,
+    };
+
+    transporter.sendMail(options);
+    transporter.close();
+    return res.status(200).json({});
+  } catch (error) {
+    return res.status(500).json({});
+  }
+});
+
 module.exports = emailRouter;

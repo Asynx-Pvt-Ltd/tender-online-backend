@@ -552,7 +552,7 @@ userRoute.post("/otp", async (req: Request, res: Response) => {
     }
 
     let sendMessage = {
-      from: "noreply@tenderonline.in",
+      from: "support@tenderonline.in",
       to: email,
       subject: ` ${OTP} is Your OTP for Authentication at Tenderonline`,
       html: Otp_template(OTP),
