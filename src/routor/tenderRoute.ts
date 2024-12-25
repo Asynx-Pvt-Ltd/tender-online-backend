@@ -143,12 +143,10 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
     } = req.query;
 
     const filter: any = {};
-
     if (search) {
       const keywords = (search as string)
         .split(",")
         .map((keyword) => keyword.trim());
-
       filter.$or = keywords.flatMap((keyword) => [
         { tenderName: { $regex: keyword, $options: "i" } },
         { description: { $regex: keyword, $options: "i" } },
@@ -177,6 +175,27 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
     if (district) {
       const districtsArray = (district as string).split(",");
       filter.district = { $in: districtsArray.map((d) => new RegExp(d, "i")) };
+    }
+
+    if (industry) {
+      const industryArray = (industry as string).split(",");
+      filter.industry = { $in: industryArray.map((i) => new RegExp(i, "i")) };
+    }
+
+    if (classification) {
+      const classificationArray = (classification as string).split(",");
+      filter.classification = {
+        $in: classificationArray.map((c) => new RegExp(c, "i")),
+      };
+    }
+
+    if (startDate && endDate) {
+      const start = new Date(startDate as string);
+      const end = new Date(endDate as string);
+
+      if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+        filter.$or = [{ bidSubmissionDate: { $gte: start, $lte: end } }];
+      }
     }
 
     if (tenderValue) {
