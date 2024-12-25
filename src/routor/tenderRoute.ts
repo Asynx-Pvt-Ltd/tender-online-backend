@@ -290,6 +290,12 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
   }
 });
 
+tenderRoute.post("/getSingle", async (req: Request, res: Response) => {
+  const { tenderId } = req.body;
+  const doc = await Tender.findById(tenderId);
+  res.json({ data: doc }).status(200);
+});
+
 tenderRoute.get("/industries", async (req: Request, res: Response) => {
   try {
     const industries = await Tender.distinct("industry");
