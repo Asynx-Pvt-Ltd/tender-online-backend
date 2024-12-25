@@ -150,6 +150,7 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
       filter.$or = keywords.flatMap((keyword) => [
         { tenderName: { $regex: keyword, $options: "i" } },
         { description: { $regex: keyword, $options: "i" } },
+        { TenderId: { $regex: keyword, $options: "i" } },
         { refNo: { $regex: keyword, $options: "i" } },
         { department: { $regex: keyword, $options: "i" } },
         { subDepartment: { $regex: keyword, $options: "i" } },
