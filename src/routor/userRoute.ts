@@ -67,15 +67,15 @@ userRoute.post("/create/account", async (req: any, res: any) => {
     };
 
     const incrementClientId = (clientId: string) => {
-      const prefix = clientId.slice(0, 3); // Extract the prefix, e.g., "#TO"
-      const number = parseInt(clientId.slice(3), 10); // Extract the numeric part
+      const prefix = clientId.slice(0, 4); // Extract the prefix, e.g., "#TO-"
+      const number = parseInt(clientId.slice(4), 10); // Extract the numeric part
       const nextNumber = (number + 1).toString().padStart(4, "0"); // Increment and pad
       return `${prefix}${nextNumber}`;
     };
     var clientId: any = 0;
     // Example
     getLastClientId().then((lastClientId) => {
-      const newClientId = incrementClientId(lastClientId || "#TO0000");
+      const newClientId = incrementClientId(lastClientId || "#TO-0000");
       clientId = newClientId;
       console.log("New Client ID:", newClientId);
     });
@@ -143,15 +143,15 @@ userRoute.post("/create/account/google", async (req: any, res: any) => {
     };
 
     const incrementClientId = (clientId: string) => {
-      const prefix = clientId.slice(0, 3);
-      const number = parseInt(clientId.slice(3), 10);
+      const prefix = clientId.slice(0, 4);
+      const number = parseInt(clientId.slice(4), 10);
       const nextNumber = (number + 1).toString().padStart(4, "0");
       return `${prefix}${nextNumber}`;
     };
 
     // Get the last client ID and generate a new one
     const lastClientId = await getLastClientId();
-    const clientId = incrementClientId(lastClientId || "#TO0000");
+    const clientId = incrementClientId(lastClientId || "#TO-0000");
 
     // Check if the user already exists
     const existingUser = await User.findOne({ email });
