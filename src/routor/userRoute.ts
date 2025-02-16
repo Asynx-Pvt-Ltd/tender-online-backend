@@ -984,6 +984,30 @@ userRoute.get("/allUsersKeywords", async (req: any, res: Response) => {
 });
 
 // message improvement
+userRoute.get(
+  "/messages",
+  authenticateUser,
+  async (req: any, res: Response) => {
+    try {
+      const userId = req.user.userId;
+
+      // Find user by ID
+      const user = await User.findById(userId);
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found." });
+      }
+
+      // Return the improvement messages array
+      return res.status(200).json({
+        messages: user.improvement,
+      });
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      return res.status(500).json({ error: "Error fetching messages." });
+    }
+  }
+);
 
 userRoute.post(
   "/message",
@@ -993,27 +1017,31 @@ userRoute.post(
       const userId = req.user.userId;
       const { message } = req.body;
 
-      // Validation: Ensure the 'message' field exists and is not empty
+      // Validation: Ensure 'message' field is a valid string
       if (!message || typeof message !== "string" || message.trim() === "") {
-        return res.status(400).send({ error: "Invalid message data." });
+        return res.status(400).json({ error: "Invalid message data." });
       }
 
-      // Check if a message already exists (assuming you only ever have one message)
-      const existingMessage: any = await User.findById(userId);
+      // Find user by ID
+      const existingUser = await User.findById(userId);
 
-      if (existingMessage) {
-        // If a message already exists, update it
-        existingMessage.improvement = message;
-
-        await existingMessage.save();
-        return res.status(200).send({
-          message: "Message updated successfully.",
-          improvement: existingMessage,
-        });
+      if (!existingUser) {
+        return res.status(404).json({ error: "User not found." });
       }
+
+      // Append new message to the 'improvement' array
+      existingUser.improvement.push(message);
+
+      // Save the updated document
+      await existingUser.save();
+
+      return res.status(200).json({
+        message: "Message added successfully.",
+        improvement: existingUser.improvement,
+      });
     } catch (error) {
       console.error("Error processing message request:", error);
-      return res.status(500).send({ error: "Error adding/updating message." });
+      return res.status(500).json({ error: "Error adding/updating message." });
     }
   }
 );
