@@ -48,7 +48,7 @@ const userSchema = new mongoose.Schema(
     profile_image: { type: String, required: false },
     isGoogleAuth: { type: Boolean, default: false },
     keyword: { type: Array, required: false },
-    improvement: { type: String, required: false, default: "Texting" },
+    improvement: { type: [String], required: false, default: [] },
   },
   {
     timestamps: true,
