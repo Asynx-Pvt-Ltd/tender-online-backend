@@ -983,6 +983,14 @@ userRoute.get("/allUsersKeywords", async (req: any, res: Response) => {
   });
 });
 
+userRoute.get("/allmessages", async (req: any, res: Response) => {
+  const user = await User.find();
+  return res.status(200).send({
+    message: "All User feedback messages",
+    user,
+  });
+});
+
 // message improvement
 userRoute.get(
   "/messages",
@@ -1001,6 +1009,7 @@ userRoute.get(
       // Return the improvement messages array
       return res.status(200).json({
         messages: user.improvement,
+        timestampImprovement: user.timestampImprovement,
       });
     } catch (error) {
       console.error("Error fetching messages:", error);
@@ -1032,12 +1041,16 @@ userRoute.post(
       // Append new message to the 'improvement' array
       existingUser.improvement.push(message);
 
+      // Add current timestamp to timestampImprovement array
+      existingUser.timestampImprovement.push(new Date().toISOString());
+
       // Save the updated document
       await existingUser.save();
 
       return res.status(200).json({
         message: "Message added successfully.",
         improvement: existingUser.improvement,
+        timestampImprovement: existingUser.timestampImprovement,
       });
     } catch (error) {
       console.error("Error processing message request:", error);

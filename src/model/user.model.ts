@@ -49,6 +49,7 @@ const userSchema = new mongoose.Schema(
     isGoogleAuth: { type: Boolean, default: false },
     keyword: { type: Array, required: false },
     improvement: { type: [String], required: false, default: [] },
+    timestampImprovement: { type: [String], required: false, default: [] },
   },
   {
     timestamps: true,
