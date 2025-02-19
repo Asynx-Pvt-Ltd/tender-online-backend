@@ -11,6 +11,7 @@ import TransactionModel from "../model/tender.priceing.model";
 const { transporter } = require("../nodemailer");
 import Razorpay from "razorpay";
 import TenderRequest from "../model/tenderRequest.model";
+import Tender from "../model/tender.model";
 
 const razorpay = new Razorpay({
   key_id: process.env.NEXT_PUBLIC_RAZOR_API_KEY,
@@ -1055,6 +1056,127 @@ userRoute.post(
     } catch (error) {
       console.error("Error processing message request:", error);
       return res.status(500).json({ error: "Error adding/updating message." });
+    }
+  }
+);
+// Check if a tender is saved
+userRoute.post(
+  "/check-saved-tender",
+  authenticateUser,
+  async (req: any, res: Response) => {
+    try {
+      const userId = req.user.userId;
+      const { tenderId } = req.body;
+
+      if (!tenderId) {
+        return res.status(400).json({ error: "Tender ID is required" });
+      }
+
+      const mapping = await TenderMapping.findOne({
+        userId,
+        tenderId,
+        type: "saved",
+      });
+
+      return res.status(200).json({ isSaved: !!mapping });
+    } catch (error) {
+      console.error("Error checking saved tender:", error);
+      return res.status(500).json({ error: "Server error" });
+    }
+  }
+);
+
+// Save/unsave tender
+userRoute.post(
+  "/save-tender",
+  authenticateUser,
+  async (req: any, res: Response) => {
+    try {
+      const userId = req.user.userId;
+      const { tenderId } = req.body;
+
+      if (!tenderId) {
+        return res.status(400).json({ error: "Tender ID is required" });
+      }
+
+      const existingMapping = await TenderMapping.findOne({
+        userId,
+        tenderId,
+        type: "saved",
+      });
+
+      if (existingMapping) {
+        // If mapping exists, remove it (unsave)
+        await TenderMapping.findByIdAndDelete(existingMapping._id);
+        return res.status(200).json({ message: "Tender unsaved successfully" });
+      } else {
+        // If mapping doesn't exist, create it (save)
+        const newMapping = new TenderMapping({
+          userId,
+          tenderId,
+          type: "saved",
+          status: "saved",
+        });
+        await newMapping.save();
+        return res.status(200).json({ message: "Tender saved successfully" });
+      }
+    } catch (error) {
+      console.error("Error saving/unsaving tender:", error);
+      return res.status(500).json({ error: "Server error" });
+    }
+  }
+);
+
+// Get saved tenders
+userRoute.get(
+  "/saved-tenders",
+  authenticateUser,
+  async (req: any, res: Response) => {
+    try {
+      const userId = req.user.userId;
+
+      // Pagination parameters
+      const page = parseInt(req.query.page as string) || 0;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const skip = page * limit;
+
+      // Find all saved tender mappings for this user
+      const savedMappings = await TenderMapping.find({
+        userId,
+        type: "saved",
+      })
+        .sort({ createdAt: -1 }) // Most recently saved first
+        .skip(skip)
+        .limit(limit);
+
+      // Extract tender IDs
+      const tenderIds = savedMappings.map((mapping) => mapping.tenderId);
+
+      // Fetch the actual tender details
+      const tenders = await Tender.find({
+        _id: { $in: tenderIds },
+      });
+
+      // Get total count for pagination
+      const totalCount = await TenderMapping.countDocuments({
+        userId,
+        type: "saved",
+      });
+
+      // Map tenders to maintain the original sort order from savedMappings
+      const sortedTenders = tenderIds
+        .map((id) =>
+          tenders.find((tender: any) => tender._id.toString() === id.toString())
+        )
+        .filter(Boolean);
+
+      return res.status(200).json({
+        result: sortedTenders,
+        count: totalCount,
+      });
+    } catch (error) {
+      console.error("Error fetching saved tenders:", error);
+      return res.status(500).json({ error: "Server error" });
     }
   }
 );
