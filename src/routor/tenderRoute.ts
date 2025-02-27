@@ -97,6 +97,7 @@ tenderRoute.post("/upload/bulk", async (req: Request, res: Response) => {
             EMDAmountin: tender["EMDAmountin₹"] || "",
             WorkDescription: tender["WorkDescription"] || "",
             source: tender["Source"] || "",
+            EMDExemptionAllowed: tender["EMDExemptionAllowed"] || "",
           },
         },
         upsert: true,
