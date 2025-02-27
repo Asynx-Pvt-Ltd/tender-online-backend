@@ -462,6 +462,7 @@ userRoute.get("/status", authenticateUser, async (req: any, res: Response) => {
       tendersVisibleUntil,
       isTendersVisible,
       paymentStatus: user.paymentStatus,
+      status: user.status,
     });
   } catch (error) {
     console.error(error);
