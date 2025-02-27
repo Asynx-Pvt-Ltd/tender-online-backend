@@ -896,16 +896,56 @@ userRoute.post(
       const userId = req.user.userId;
       const { currentPassword, newPassword } = req.body;
 
+      // Validate password strength on backend as well
+      const passwordRegex = {
+        minLength: /.{8,}/,
+        uppercase: /[A-Z]/,
+        number: /[0-9]/,
+        special: /[!@#$%^&*(),.?":{}|<>]/,
+      };
+
+      if (!passwordRegex.minLength.test(newPassword)) {
+        return res
+          .status(400)
+          .json({ message: "Password must be at least 8 characters." });
+      }
+      if (!passwordRegex.uppercase.test(newPassword)) {
+        return res
+          .status(400)
+          .json({
+            message: "Password must contain at least one uppercase letter.",
+          });
+      }
+      if (!passwordRegex.number.test(newPassword)) {
+        return res
+          .status(400)
+          .json({ message: "Password must contain at least one number." });
+      }
+      if (!passwordRegex.special.test(newPassword)) {
+        return res
+          .status(400)
+          .json({
+            message: "Password must contain at least one special character.",
+          });
+      }
+
       const user = await User.findById(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found." });
       }
 
-      // const passwordMatch = await bcrypt.compare(currentPassword, user.password);
-      // if (!passwordMatch) {
-      //   return res.status(401).json({ message: "Invalid password." });
-      // }
+      // Verify current password
+      const isPasswordValid = await bcrypt.compare(
+        currentPassword,
+        user.password
+      );
+      if (!isPasswordValid) {
+        return res
+          .status(401)
+          .json({ message: "Current password is incorrect." });
+      }
 
+      // Hash and save new password
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       user.password = hashedPassword;
       await user.save();
