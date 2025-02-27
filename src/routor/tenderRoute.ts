@@ -140,6 +140,7 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
       offset,
       sortBy,
       sortOrder,
+      showClosed,
     } = req.query;
 
     const filter: any = {};
@@ -171,6 +172,13 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
               { TenderId: Number(keyword) },
             ]),
       ]);
+    }
+    if (showClosed === "true") {
+      // Show only tenders where bid submission date has passed
+      filter.bidSubmissionDate = { $lt: new Date() };
+    } else {
+      // Default behavior - show only open tenders
+      filter.bidSubmissionDate = { $gte: new Date() };
     }
 
     if (district) {
