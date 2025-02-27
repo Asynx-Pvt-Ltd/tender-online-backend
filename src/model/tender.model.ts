@@ -23,6 +23,7 @@ export interface TenderDocument extends Document {
   EMDAmountin?: string;
   WorkDescription?: string;
   source?: string;
+  EMDExemptionAllowed?: string;
 }
 
 const tenderSchema: Schema<TenderDocument> = new mongoose.Schema({
@@ -111,6 +112,10 @@ const tenderSchema: Schema<TenderDocument> = new mongoose.Schema({
     required: false,
   },
   source: {
+    type: String,
+    required: false,
+  },
+  EMDExemptionAllowed: {
     type: String,
     required: false,
   },

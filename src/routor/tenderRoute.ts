@@ -74,10 +74,10 @@ tenderRoute.post("/upload/bulk", async (req: Request, res: Response) => {
         filter: { TenderId: tender["TenderID"] },
         update: {
           $set: {
-            tenderName: tender["TenderName"],
+            tenderName: tender["Title"],
             description: tender["Description"] || "",
             epublishedDate: tender["PublishedDate"],
-            refNo: tender["ReferenceNo"],
+            refNo: tender["TenderReferenceNumber"],
             district: tender["District"],
             state: tender["State"] || "Tamil Nadu",
             department: tender["Department"],
@@ -85,18 +85,19 @@ tenderRoute.post("/upload/bulk", async (req: Request, res: Response) => {
             location: tender["Location"],
             address: tender["Address"],
             pincode: parseInt(tender["Pincode"]),
-            tenderValue: tender["TenderValue(₹)"]
+            tenderValue: tender["TenderValuein₹"]
               .replace(/[^\d]/g, "")
               .split(",")
               .join(""),
             bidOpeningDate: tender["BidOpeningDate"],
             bidSubmissionDate: tender["BidSubmissionEndDate"],
-            industry: tender["Industry"] || "",
-            subIndustry: tender["Sub-Industry"] || "",
-            classification: tender["Classification"] || "",
+            industry: tender["PredictedIndustry"] || "",
+            subIndustry: tender["PredictedSub-Industry"] || "",
+            classification: tender["PredictedType"] || "",
             EMDAmountin: tender["EMDAmountin₹"] || "",
             WorkDescription: tender["WorkDescription"] || "",
             source: tender["Source"] || "",
+            EMDExemptionAllowed: tender["EMDExemptionAllowed"] || "",
           },
         },
         upsert: true,
