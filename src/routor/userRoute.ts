@@ -1365,4 +1365,105 @@ userRoute.get(
   }
 );
 
+userRoute.get(
+  "/user-saved-tenders/:userId",
+  authenticateUser,
+  async (req: any, res: Response) => {
+    try {
+      const { userId } = req.params;
+
+      // Pagination parameters
+      const page = parseInt(req.query.page as string) || 0;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const skip = page * limit;
+
+      // Get user details
+      const user = await User.findById(userId).select("username email name");
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Find saved mappings for the specific user
+      const savedMappings = await TenderMapping.find({
+        type: "saved",
+        userId: userId,
+      })
+        .populate("tenderId") // Populate tender details
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      // Extract tenders from mappings
+      const tenders = savedMappings
+        .map((mapping: any) => mapping.tenderId)
+        .filter((tender: any) => tender !== null);
+
+      // Get total count for pagination
+      const totalCount = await TenderMapping.countDocuments({
+        type: "saved",
+        userId: userId,
+      });
+
+      return res.status(200).json({
+        user,
+        tenders,
+        count: totalCount,
+      });
+    } catch (error) {
+      console.error("Error fetching user's saved tenders:", error);
+      return res.status(500).json({ error: "Server error" });
+    }
+  }
+);
+
+userRoute.get(
+  "/users-with-saved-tenders",
+  authenticateUser,
+  async (req: any, res: Response) => {
+    try {
+      // Pagination parameters
+      const page = parseInt(req.query.page as string) || 0;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const skip = page * limit;
+
+      // Find unique users who have saved tenders
+      const uniqueUsers = await TenderMapping.aggregate([
+        { $match: { type: "saved" } },
+        { $group: { _id: "$userId" } },
+        { $sort: { _id: 1 } },
+        { $skip: skip },
+        { $limit: limit },
+      ]);
+
+      const userIds = uniqueUsers
+        .map((item) => item._id)
+        .filter((id) => id != null);
+
+      // Fetch user details
+      const users = await User.find({
+        _id: { $in: userIds },
+      }).select("_id name email username clientId");
+
+      // Get total count for pagination
+      const totalCount = await TenderMapping.aggregate([
+        { $match: { type: "saved" } },
+        { $group: { _id: "$userId" } },
+        { $match: { _id: { $ne: null } } },
+        { $count: "total" },
+      ]);
+
+      const count = totalCount.length > 0 ? totalCount[0].total : 0;
+
+      return res.status(200).json({
+        users,
+        count,
+      });
+    } catch (error) {
+      console.error("Error fetching users with saved tenders:", error);
+      return res.status(500).json({ error: "Server error" });
+    }
+  }
+);
+
 module.exports = userRoute;
