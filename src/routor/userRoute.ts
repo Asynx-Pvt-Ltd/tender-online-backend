@@ -12,6 +12,7 @@ const { transporter } = require("../nodemailer");
 import Razorpay from "razorpay";
 import TenderRequest from "../model/tenderRequest.model";
 import Tender from "../model/tender.model";
+import DeletedUser from "../model/deletedUser.model";
 
 const razorpay = new Razorpay({
   key_id: process.env.NEXT_PUBLIC_RAZOR_API_KEY,
@@ -729,17 +730,91 @@ userRoute.get("/users", async (req: Request, res: Response) => {
 // delete user with id /users/:id
 userRoute.delete("/users/:id", async (req: Request, res: Response) => {
   try {
-    const user = await User.findByIdAndDelete(req.params.id);
+    const user = await User.findById(req.params.id);
+
     if (!user) {
       return res.status(404).json({ message: "User not found.", code: 404 });
     }
+
+    try {
+      await DeletedUser.create({
+        originalId: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        status: user.status,
+        isPayment: user.isPayment,
+        subscriptionValidity: user.subscriptionValidity,
+        companyName: user.companyName,
+        paymentStatus: user.paymentStatus,
+        clientId: user.clientId,
+        improvement: user.improvement || "",
+        deletedAt: new Date(),
+      });
+    } catch (archiveError) {
+      console.error("Error archiving user:", archiveError);
+    }
+
+    // Now delete the user
+    const deletedUser = await User.findByIdAndDelete(req.params.id);
+
+    if (!deletedUser) {
+      return res
+        .status(404)
+        .json({ message: "User could not be deleted.", code: 404 });
+    }
+
     res.status(200).json({
       message: "User deleted successfully.",
       code: 200,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Error deleting user.");
+    console.error("Error deleting user:", error);
+    res.status(500).json({
+      message: "Error deleting user.",
+      error: error.message,
+      code: 500,
+    });
+  }
+});
+
+userRoute.get("/deleted-users", async (req: Request, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const search = (req.query.search as string) || "";
+
+    const skip = (page - 1) * limit;
+
+    let query = {};
+    if (search) {
+      query = {
+        $or: [
+          { name: { $regex: search, $options: "i" } },
+          { email: { $regex: search, $options: "i" } },
+          { phone: { $regex: search, $options: "i" } },
+          { companyName: { $regex: search, $options: "i" } },
+          { clientId: { $regex: search, $options: "i" } },
+        ],
+      };
+    }
+
+    const deletedUsers = await DeletedUser.find(query)
+      .sort({ deletedAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalUsers = await DeletedUser.countDocuments(query);
+
+    res.status(200).json({
+      deletedUsers,
+      totalPages: Math.ceil(totalUsers / limit),
+      currentPage: page,
+      totalUsers,
+    });
+  } catch (error) {
+    console.error("Error fetching deleted users:", error);
+    res.status(500).json({ message: "Error fetching deleted users" });
   }
 });
 
@@ -944,12 +1019,9 @@ userRoute.post(
       // Check if new password is the same as the current password
       const isSamePassword = await bcrypt.compare(newPassword, user.password);
       if (isSamePassword) {
-        return res
-          .status(400)
-          .json({
-            message:
-              "New password cannot be the same as your current password.",
-          });
+        return res.status(400).json({
+          message: "New password cannot be the same as your current password.",
+        });
       }
 
       // Hash and save new password
