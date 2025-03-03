@@ -1293,9 +1293,73 @@ userRoute.get(
       return res.status(200).json({
         result: sortedTenders,
         count: totalCount,
+        User,
       });
     } catch (error) {
       console.error("Error fetching saved tenders:", error);
+      return res.status(500).json({ error: "Server error" });
+    }
+  }
+);
+
+userRoute.get(
+  "/all-saved-tenders",
+  authenticateUser,
+  async (req: any, res: Response) => {
+    try {
+      // Pagination parameters
+      const page = parseInt(req.query.page as string) || 0;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const skip = page * limit;
+
+      // Find all mappings with type "saved"
+      const savedMappings = await TenderMapping.find({
+        type: "saved",
+      })
+        .populate("userId", "username email name") // Populate user details
+        .populate("tenderId") // Populate tender details
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      // Filter out entries where userId is null
+      const validMappings = savedMappings.filter((mapping) => mapping.userId);
+
+      // Group tenders by user
+      const tendersByUser = validMappings.reduce((acc: any, mapping: any) => {
+        const userId = mapping.userId._id.toString();
+
+        if (!acc[userId]) {
+          acc[userId] = {
+            user: {
+              _id: mapping.userId._id,
+              username: mapping.userId.username,
+              email: mapping.userId.email,
+              name: mapping.userId.name,
+            },
+            tenders: [],
+          };
+        }
+
+        acc[userId].tenders.push(mapping.tenderId);
+        return acc;
+      }, {});
+
+      // Convert to array format for easier frontend handling
+      const result = Object.values(tendersByUser);
+
+      // Get total count for pagination
+      const totalCount = await TenderMapping.countDocuments({
+        type: "saved",
+        userId: { $ne: null }, // Count only valid records
+      });
+
+      return res.status(200).json({
+        result,
+        count: totalCount,
+      });
+    } catch (error) {
+      console.error("Error fetching all saved tenders:", error);
       return res.status(500).json({ error: "Server error" });
     }
   }
