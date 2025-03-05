@@ -49,6 +49,40 @@ const authenticateUser = (req: any, res: Response, next: NextFunction) => {
   }
 };
 
+const generateUniqueClientId = async () => {
+  // Find the maximum client ID across both active and deleted users
+  const [lastActiveUser, lastDeletedUser] = await Promise.all([
+    User.findOne({ clientId: { $exists: true } }, { clientId: 1 })
+      .sort({ clientId: -1 })
+      .exec(),
+    DeletedUser.findOne({ clientId: { $exists: true } }, { clientId: 1 })
+      .sort({ clientId: -1 })
+      .exec(),
+  ]);
+
+  // Determine the maximum client ID
+  let maxClientId = null;
+  if (lastActiveUser && lastDeletedUser) {
+    maxClientId =
+      lastActiveUser.clientId > lastDeletedUser.clientId
+        ? lastActiveUser.clientId
+        : lastDeletedUser.clientId;
+  } else if (lastActiveUser) {
+    maxClientId = lastActiveUser.clientId;
+  } else if (lastDeletedUser) {
+    maxClientId = lastDeletedUser.clientId;
+  }
+
+  // If no client ID exists, start from the first
+  if (!maxClientId) return "#TO-0001";
+
+  // Increment the client ID
+  const prefix = maxClientId.slice(0, 4);
+  const number = parseInt(maxClientId.slice(4), 10);
+  const nextNumber = (number + 1).toString().padStart(4, "0");
+  return `${prefix}${nextNumber}`;
+};
+
 userRoute.post("/create/account", async (req: any, res: any) => {
   try {
     const {
@@ -60,27 +94,9 @@ userRoute.post("/create/account", async (req: any, res: any) => {
       isGoogleAuth,
       profile_image,
     } = req.body;
-    const getLastClientId = async () => {
-      const lastClient = await User.findOne()
-        .sort({ clientId: -1 }) // Sort by clientId in descending order
-        .exec();
 
-      return lastClient?.clientId || null; // Return the clientId or null if no documents
-    };
-
-    const incrementClientId = (clientId: string) => {
-      const prefix = clientId.slice(0, 4); // Extract the prefix, e.g., "#TO-"
-      const number = parseInt(clientId.slice(4), 10); // Extract the numeric part
-      const nextNumber = (number + 1).toString().padStart(4, "0"); // Increment and pad
-      return `${prefix}${nextNumber}`;
-    };
-    var clientId: any = 0;
-    // Example
-    getLastClientId().then((lastClientId) => {
-      const newClientId = incrementClientId(lastClientId || "#TO-0000");
-      clientId = newClientId;
-      console.log("New Client ID:", newClientId);
-    });
+    // Generate unique client ID
+    const clientId = await generateUniqueClientId();
 
     // Validate the user input
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -110,7 +126,7 @@ userRoute.post("/create/account", async (req: any, res: any) => {
       subscriptionValidity, // Add the default 3-day subscription
       isGoogleAuth,
       profile_image,
-      clientId,
+      clientId, // Use the newly generated unique client ID
       paymentStatus: "Free trial",
     });
 
@@ -137,23 +153,8 @@ userRoute.post("/create/account/google", async (req: any, res: any) => {
   try {
     const { email, name, picture, isGoogleAuth } = req.body;
 
-    // Reuse the client ID generation logic from the previous route
-    const getLastClientId = async () => {
-      const lastClient = await User.findOne().sort({ clientId: -1 }).exec();
-
-      return lastClient?.clientId || null;
-    };
-
-    const incrementClientId = (clientId: string) => {
-      const prefix = clientId.slice(0, 4);
-      const number = parseInt(clientId.slice(4), 10);
-      const nextNumber = (number + 1).toString().padStart(4, "0");
-      return `${prefix}${nextNumber}`;
-    };
-
-    // Get the last client ID and generate a new one
-    const lastClientId = await getLastClientId();
-    const clientId = incrementClientId(lastClientId || "#TO-0000");
+    // Generate unique client ID
+    const clientId = await generateUniqueClientId();
 
     // Check if the user already exists
     const existingUser = await User.findOne({ email });
@@ -747,7 +748,7 @@ userRoute.delete("/users/:id", async (req: Request, res: Response) => {
         subscriptionValidity: user.subscriptionValidity,
         companyName: user.companyName,
         paymentStatus: user.paymentStatus,
-        clientId: user.clientId,
+        clientId: user.clientId, // Explicitly save the clientId in deleted users
         improvement: user.improvement || "",
         deletedAt: new Date(),
       });
