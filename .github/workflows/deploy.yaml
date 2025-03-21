@@ -19,18 +19,18 @@ jobs:
       - name: Dependency Install
         run: yarn install --frozen-lockfile
 
-      - name: Create .env.production file
+      - name: Create .env file
         run: |
-          echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> .env.production
-          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> .env.production
-          echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> .env.production
-          echo "AWS_BUCKET_NAME=${{ secrets.AWS_BUCKET_NAME }}" >> .env.production
-          echo "PORT=${{ secrets.PORT }}" >> .env.production
-          echo "RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}" >> .env.production
-          echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> .env.production
-          echo "NEXT_PUBLIC_RAZOR_API_KEY=${{ secrets.NEXT_PUBLIC_RAZOR_API_KEY }}" >> .env.production
-          echo "NEXT_PUBLIC_RAZOR_API_SECRET=${{ secrets.NEXT_PUBLIC_RAZOR_API_SECRET }}" >> .env.production
-          echo "RAZORPAY_WEBHOOK_SECRET=${{ secrets.RAZORPAY_WEBHOOK_SECRET }}" >> .env.production
+          echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> .env
+          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> .env
+          echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> .env
+          echo "AWS_BUCKET_NAME=${{ secrets.AWS_BUCKET_NAME }}" >> .env
+          echo "PORT=${{ secrets.PORT }}" >> .env
+          echo "RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}" >> .env
+          echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> .env
+          echo "NEXT_PUBLIC_RAZOR_API_KEY=${{ secrets.NEXT_PUBLIC_RAZOR_API_KEY }}" >> .env
+          echo "NEXT_PUBLIC_RAZOR_API_SECRET=${{ secrets.NEXT_PUBLIC_RAZOR_API_SECRET }}" >> .env
+          echo "RAZORPAY_WEBHOOK_SECRET=${{ secrets.RAZORPAY_WEBHOOK_SECRET }}" >> .env
 
       - name: Build
         run: yarn build
