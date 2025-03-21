@@ -1,0 +1,63 @@
+name: Deploy to VPS
+on:
+  push:
+    branches: prod
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'yarn'
+
+      - name: Dependency Install
+        run: yarn install --frozen-lockfile
+
+      - name: Create .env.production file
+        run: |
+          echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> .env.production
+          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> .env.production
+          echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> .env.production
+          echo "AWS_BUCKET_NAME=${{ secrets.AWS_BUCKET_NAME }}" >> .env.production
+          echo "PORT=${{ secrets.PORT }}" >> .env.production
+          echo "RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}" >> .env.production
+          echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> .env.production
+          echo "NEXT_PUBLIC_RAZOR_API_KEY=${{ secrets.NEXT_PUBLIC_RAZOR_API_KEY }}" >> .env.production
+          echo "NEXT_PUBLIC_RAZOR_API_SECRET=${{ secrets.NEXT_PUBLIC_RAZOR_API_SECRET }}" >> .env.production
+          echo "RAZORPAY_WEBHOOK_SECRET=${{ secrets.RAZORPAY_WEBHOOK_SECRET }}" >> .env.production
+
+      - name: Build
+        run: yarn build
+
+      - name: SSH setup
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Add host as known host
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to VPS
+        run: |
+          rsync -avz --delete -e "ssh -p ${{ secrets.SSH_PORT }}" \
+            ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/tender-backend/ \
+            --exclude=".git" \
+            --exclude=".github" \
+            --exclude="node_modules"
+
+      - name: Connect to server and start service
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            cd ~/tender-backend
+            yarn install --frozen-lockfile
+            yarn build
+            systemctl restart tender-backend
+          EOF

@@ -6,6 +6,7 @@ const express = require('express');
 const tenderRoute = express.Router();
 import jwt from 'jsonwebtoken';
 import contactModel from '../model/contact.model';
+import { TenderValueEnum } from '../enums';
 const generateRandomNumber = (min: number, max: number): number => {
 	return Math.floor(Math.random() * (max - min + 1) + min);
 };
@@ -209,37 +210,44 @@ tenderRoute.get('/all', async (req: Request, res: Response) => {
 		}
 
 		if (tenderValue) {
-			let minValue, maxValue;
+			if (tenderValue === TenderValueEnum.REFERTHEDOCUMENT) {
+				filter.tenderValue = { $not: { $type: 'number' } };
+			} else {
+				let minValue, maxValue;
 
-			if (Array.isArray(tenderValue) && tenderValue.length === 2) {
-				minValue = Number(tenderValue[0]) * 10000000;
-				maxValue = Number(tenderValue[1]) * 10000000;
-			} else if (typeof tenderValue === 'string' && tenderValue.includes(',')) {
-				const [min, max] = tenderValue
-					.split(',')
-					.map((v) => Number(v) * 10000000);
-				minValue = min;
-				maxValue = max;
-			}
+				if (Array.isArray(tenderValue) && tenderValue.length === 2) {
+					minValue = Number(tenderValue[0]) * 10000000;
+					maxValue = Number(tenderValue[1]) * 10000000;
+				} else if (
+					typeof tenderValue === 'string' &&
+					tenderValue.includes(',')
+				) {
+					const [min, max] = tenderValue
+						.split(',')
+						.map((v) => Number(v) * 10000000);
+					minValue = min;
+					maxValue = max;
+				}
 
-			const rangeFilter: any = {};
+				const rangeFilter: any = {};
 
-			if (minValue > 0) {
-				rangeFilter.$gte = minValue;
-			}
+				if (minValue > 0) {
+					rangeFilter.$gte = minValue;
+				}
 
-			if (maxValue < 50000000) {
-				// 500L in INR
-				rangeFilter.$lte = maxValue;
-			}
+				if (maxValue < 50000000) {
+					// 500L in INR
+					rangeFilter.$lte = maxValue;
+				}
 
-			if (Object.keys(rangeFilter).length > 0) {
-				if (filter.$or) {
-					filter.$and = filter.$and || [];
-					filter.$and.push({ $or: filter.$or }, { tenderValue: rangeFilter });
-					delete filter.$or;
-				} else {
-					filter.tenderValue = rangeFilter;
+				if (Object.keys(rangeFilter).length > 0) {
+					if (filter.$or) {
+						filter.$and = filter.$and || [];
+						filter.$and.push({ $or: filter.$or }, { tenderValue: rangeFilter });
+						delete filter.$or;
+					} else {
+						filter.tenderValue = rangeFilter;
+					}
 				}
 			}
 		}
