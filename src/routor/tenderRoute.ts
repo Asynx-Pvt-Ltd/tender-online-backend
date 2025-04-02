@@ -67,12 +67,12 @@ tenderRoute.post('/upload/bulk', async (req: Request, res: Response) => {
 	try {
 		const uniqueTenderEntries = req.body.filter(
 			(tender: any, index: number, self: any[]) =>
-				index === self.findIndex((t) => t['TenderID'] === tender['TenderID']),
+				index === self.findIndex((t) => t['TOrefID'] === tender['TOrefID']),
 		);
 
 		const bulkOperations = uniqueTenderEntries.map((tender: any) => ({
 			updateOne: {
-				filter: { TenderId: tender['TenderID'] },
+				filter: { TenderId: tender['TOrefID'] },
 				update: {
 					$set: {
 						tenderName: tender['Title'],
@@ -92,9 +92,9 @@ tenderRoute.post('/upload/bulk', async (req: Request, res: Response) => {
 							.join(''),
 						bidOpeningDate: tender['BidOpeningDate'],
 						bidSubmissionDate: tender['BidSubmissionEndDate'],
-						industry: tender['PredictedIndustry'] || '',
+						industry: tender['ProductCategory'] || '',
 						subIndustry: tender['PredictedSub-Industry'] || '',
-						classification: tender['PredictedType'] || '',
+						classification: tender['TenderCategory'] || '',
 						EMDAmountin: tender['EMDAmountin₹'] || '',
 						WorkDescription: tender['WorkDescription'] || '',
 						source: tender['Source'] || '',
