@@ -326,6 +326,39 @@ tenderRoute.get('/industries', async (req: Request, res: Response) => {
 		});
 	}
 });
+
+tenderRoute.get('/states', async (req: Request, res: Response) => {
+	try {
+		const states = await Tender.distinct('state');
+
+		// Map states to the desired format with proper capitalization
+		const formattedStates = states.map((state) => {
+			// Convert to lowercase first, then capitalize the first letter of each word
+			const formattedState = state
+				.toLowerCase()
+				.split(' ')
+				.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+				.join(' ');
+
+			return {
+				value: formattedState.toLowerCase().replace(/\s+/g, '-'),
+				label: formattedState,
+			};
+		});
+
+		res.status(200).json({
+			message: 'States fetched successfully.',
+			states: formattedStates,
+			code: 200,
+		});
+	} catch (error) {
+		console.error('Error fetching states:', error);
+		res.status(500).json({
+			message: 'Error fetching states. Please try again.',
+			error: error.message,
+		});
+	}
+});
 tenderRoute.get('/classifications', async (req: Request, res: Response) => {
 	try {
 		const classifications = await Tender.distinct('classification');
