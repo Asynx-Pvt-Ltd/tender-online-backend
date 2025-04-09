@@ -143,6 +143,7 @@ tenderRoute.get('/all', async (req: Request, res: Response) => {
 			sortBy,
 			sortOrder,
 			showClosed,
+			states,
 		} = req.query;
 
 		const filter: any = {};
@@ -164,6 +165,7 @@ tenderRoute.get('/all', async (req: Request, res: Response) => {
 				{ status: { $regex: keyword, $options: 'i' } },
 				{ WorkDescription: { $regex: keyword, $options: 'i' } },
 				{ address: { $regex: keyword, $options: 'i' } },
+				{ state: { $regex: keyword, $options: 'i' } },
 
 				...(isNaN(Number(keyword))
 					? []
@@ -191,6 +193,11 @@ tenderRoute.get('/all', async (req: Request, res: Response) => {
 		if (industry) {
 			const industryArray = (industry as string).split(',');
 			filter.industry = { $in: industryArray.map((i) => new RegExp(i, 'i')) };
+		}
+
+		if (states) {
+			const statesArray = (states as string).split(',');
+			filter.state = { $in: statesArray.map((i) => new RegExp(i, 'i')) };
 		}
 
 		if (classification) {
@@ -301,6 +308,29 @@ tenderRoute.post('/getSingle', async (req: Request, res: Response) => {
 	const { tenderId } = req.body;
 	const doc = await Tender.findById(tenderId);
 	res.json({ data: doc }).status(200);
+});
+
+tenderRoute.get('/states', async (req: Request, res: Response) => {
+	try {
+		const states = await Tender.distinct('state');
+
+		const formattedStates = states.map((states, index) => ({
+			value: states.toLowerCase(),
+			label: states,
+		}));
+
+		res.status(200).json({
+			message: 'States fetched successfully.',
+			states: formattedStates,
+			code: 200,
+		});
+	} catch (error) {
+		console.error('Error fetching states:', error);
+		res.status(500).json({
+			message: 'Error fetching states. Please try again.',
+			error: error.message,
+		});
+	}
 });
 
 tenderRoute.get('/industries', async (req: Request, res: Response) => {
