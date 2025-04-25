@@ -144,10 +144,13 @@ tenderRoute.get('/all', async (req: Request, res: Response) => {
 			sortOrder,
 			showClosed,
 			states,
+			exactTenderId,
 		} = req.query;
 
 		const filter: any = {};
-		if (search) {
+		if (exactTenderId) {
+			filter.TenderId = exactTenderId;
+		} else if (search) {
 			const keywords = (search as string)
 				.split(',')
 				.map((keyword) => keyword.trim());
@@ -303,7 +306,6 @@ tenderRoute.get('/all', async (req: Request, res: Response) => {
 		});
 	}
 });
-
 tenderRoute.post('/getSingle', async (req: Request, res: Response) => {
 	const { tenderId } = req.body;
 	const doc = await Tender.findById(tenderId);
