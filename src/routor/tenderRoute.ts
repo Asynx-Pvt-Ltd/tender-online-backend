@@ -70,40 +70,53 @@ tenderRoute.post('/upload/bulk', async (req: Request, res: Response) => {
 				index === self.findIndex((t) => t['TOrefID'] === tender['TOrefID']),
 		);
 
-		const bulkOperations = uniqueTenderEntries.map((tender: any) => ({
-			updateOne: {
-				filter: { TenderId: tender['TOrefID'] },
-				update: {
-					$set: {
-						tenderName: tender['Title'],
-						description: tender['Description'] || '',
-						epublishedDate: tender['PublishedDate'],
-						refNo: tender['TenderReferenceNumber'],
-						district: tender['District'],
-						state: tender['State'] || 'Tamil Nadu',
-						department: tender['Department'],
-						subDepartment: tender['Sub-Department-1'] || '',
-						location: tender['Location'],
-						address: tender['Address'],
-						pincode: parseInt(tender['Pincode']),
-						tenderValue: tender['TenderValuein₹']
-							.replace(/[^\d]/g, '')
-							.split(',')
-							.join(''),
-						bidOpeningDate: tender['BidOpeningDate'],
-						bidSubmissionDate: tender['BidSubmissionEndDate'],
-						industry: tender['ProductCategory'] || '',
-						subIndustry: tender['PredictedSub-Industry'] || '',
-						classification: tender['TenderCategory'] || '',
-						EMDAmountin: tender['EMDAmountin₹'] || '',
-						WorkDescription: tender['WorkDescription'] || '',
-						source: tender['Source'] || '',
-						EMDExemptionAllowed: tender['EMDExemptionAllowed'] || '',
+		const bulkOperations = uniqueTenderEntries.map((tender: any) => {
+			// Safely parse tender value with proper handling for invalid formats
+			let tenderValue = null;
+			if (
+				tender['TenderValuein₹'] &&
+				typeof tender['TenderValuein₹'] === 'string'
+			) {
+				const cleanValue = tender['TenderValuein₹'].replace(/[^0-9.]/g, '');
+
+				if (cleanValue && !isNaN(parseFloat(cleanValue))) {
+					tenderValue = parseFloat(cleanValue);
+					tenderValue = parseFloat(tenderValue.toFixed(2));
+				}
+			}
+
+			return {
+				updateOne: {
+					filter: { TenderId: tender['TOrefID'] },
+					update: {
+						$set: {
+							tenderName: tender['Title'],
+							description: tender['Description'] || '',
+							epublishedDate: tender['PublishedDate'],
+							refNo: tender['TenderReferenceNumber'],
+							district: tender['District'],
+							state: tender['State'] || 'Tamil Nadu',
+							department: tender['Department'],
+							subDepartment: tender['Sub-Department-1'] || '',
+							location: tender['Location'],
+							address: tender['Address'],
+							pincode: parseInt(tender['Pincode'] || '0'),
+							tenderValue: tenderValue,
+							bidOpeningDate: tender['BidOpeningDate'],
+							bidSubmissionDate: tender['BidSubmissionEndDate'],
+							industry: tender['ProductCategory'] || '',
+							subIndustry: tender['PredictedSub-Industry'] || '',
+							classification: tender['TenderCategory'] || '',
+							EMDAmountin: tender['EMDAmountin₹'] || '',
+							WorkDescription: tender['WorkDescription'] || '',
+							source: tender['Source'] || '',
+							EMDExemptionAllowed: tender['EMDExemptionAllowed'] || '',
+						},
 					},
+					upsert: true,
 				},
-				upsert: true,
-			},
-		}));
+			};
+		});
 
 		const result = await Tender.bulkWrite(bulkOperations);
 
