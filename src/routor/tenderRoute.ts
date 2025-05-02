@@ -258,8 +258,7 @@ tenderRoute.get('/all', async (req: Request, res: Response) => {
 					rangeFilter.$gte = minValue;
 				}
 
-				if (maxValue < 50000000) {
-					// 500L in INR
+				if (!isNaN(maxValue)) {
 					rangeFilter.$lte = maxValue;
 				}
 
