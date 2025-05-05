@@ -90,7 +90,8 @@ tenderRoute.post('/upload/bulk', async (req: Request, res: Response) => {
 					filter: { TenderId: tender['TOrefID'] },
 					update: {
 						$set: {
-							tenderName: tender['Title'],
+							// tenderName: tender['Title'],
+							tenderName: tender['WorkDescription'],
 							description: tender['Description'] || '',
 							epublishedDate: tender['PublishedDate'],
 							refNo: tender['TenderReferenceNumber'],
