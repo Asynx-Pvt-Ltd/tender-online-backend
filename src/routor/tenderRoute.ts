@@ -85,6 +85,19 @@ tenderRoute.post('/upload/bulk', async (req: Request, res: Response) => {
 				}
 			}
 
+			let emdAmount = null;
+			if (
+				tender['EMDAmountin₹'] &&
+				typeof tender['EMDAmountin₹'] === 'string'
+			) {
+				const cleanEmdValue = tender['EMDAmountin₹'].replace(/[^0-9.]/g, '');
+
+				if (cleanEmdValue && !isNaN(parseFloat(cleanEmdValue))) {
+					emdAmount = parseFloat(cleanEmdValue);
+					emdAmount = parseFloat(emdAmount.toFixed(2));
+				}
+			}
+
 			return {
 				updateOne: {
 					filter: { TenderId: tender['TOrefID'] },
@@ -108,7 +121,7 @@ tenderRoute.post('/upload/bulk', async (req: Request, res: Response) => {
 							industry: tender['ProductCategory'] || '',
 							subIndustry: tender['PredictedSub-Industry'] || '',
 							classification: tender['TenderCategory'] || '',
-							EMDAmountin: tender['EMDAmountin₹'] || '',
+							EMDAmountin: emdAmount || '',
 							WorkDescription: tender['WorkDescription'] || '',
 							source: tender['Source'] || '',
 							EMDExemptionAllowed: tender['EMDExemptionAllowed'] || '',
@@ -322,6 +335,7 @@ tenderRoute.get('/all', async (req: Request, res: Response) => {
 		});
 	}
 });
+
 tenderRoute.post('/getSingle', async (req: Request, res: Response) => {
 	const { tenderId } = req.body;
 	const doc = await Tender.findById(tenderId);
