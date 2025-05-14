@@ -292,6 +292,9 @@ tenderRoute.get('/all', async (req: Request, res: Response) => {
 				case 'bidOpeningDate':
 					sortOptions.bidOpeningDate = sortOrder === 'desc' ? -1 : 1;
 					break;
+				case 'emdValue':
+					sortOptions.EMDAmountin = sortOrder === 'desc' ? -1 : 1;
+					break;
 				default:
 					sortOptions._id = 1;
 			}
