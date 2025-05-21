@@ -294,7 +294,7 @@ tenderRoute.get('/all', async (req: Request, res: Response) => {
 			const sortOptions: any = {};
 			switch (sortBy) {
 				case 'tenderValue':
-					sortOptions.tenderValue = sortOrder === 'desc' ? -1 : 1;
+					sortOptions.tenderValue = sortOrder === 'asc' ? -1 : 1;
 					break;
 				case 'epublishedDate':
 					sortOptions.epublishedDate = sortOrder === 'desc' ? -1 : 1;
@@ -306,7 +306,7 @@ tenderRoute.get('/all', async (req: Request, res: Response) => {
 					sortOptions.bidOpeningDate = sortOrder === 'desc' ? -1 : 1;
 					break;
 				case 'emdValue':
-					sortOptions.EMDAmountin = sortOrder === 'desc' ? -1 : 1;
+					sortOptions.EMDAmountin = sortOrder === 'asc' ? -1 : 1;
 					break;
 				default:
 					sortOptions._id = 1;
