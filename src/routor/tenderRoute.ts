@@ -196,7 +196,6 @@ tenderRoute.get('/all', async (req: Request, res: Response) => {
 				{ WorkDescription: { $regex: keyword, $options: 'i' } },
 				{ address: { $regex: keyword, $options: 'i' } },
 				{ state: { $regex: keyword, $options: 'i' } },
-
 				...(isNaN(Number(keyword))
 					? []
 					: [
@@ -207,11 +206,10 @@ tenderRoute.get('/all', async (req: Request, res: Response) => {
 					  ]),
 			]);
 		}
+
 		if (showClosed === 'true') {
-			// Show only tenders where bid submission date has passed
 			filter.bidSubmissionDate = { $lt: new Date() };
 		} else {
-			// Default behavior - show only open tenders
 			filter.bidSubmissionDate = { $gte: new Date() };
 		}
 
@@ -240,7 +238,6 @@ tenderRoute.get('/all', async (req: Request, res: Response) => {
 		if (startDate && endDate) {
 			const start = new Date(startDate as string);
 			const end = new Date(endDate as string);
-
 			if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
 				filter.$or = [{ bidSubmissionDate: { $gte: start, $lte: end } }];
 			}
@@ -251,7 +248,6 @@ tenderRoute.get('/all', async (req: Request, res: Response) => {
 				filter.tenderValue = { $not: { $type: 'number' } };
 			} else {
 				let minValue, maxValue;
-
 				if (Array.isArray(tenderValue) && tenderValue.length === 2) {
 					minValue = Number(tenderValue[0]) * 10000000;
 					maxValue = Number(tenderValue[1]) * 10000000;
@@ -267,14 +263,8 @@ tenderRoute.get('/all', async (req: Request, res: Response) => {
 				}
 
 				const rangeFilter: any = {};
-
-				if (minValue > 0) {
-					rangeFilter.$gte = minValue;
-				}
-
-				if (!isNaN(maxValue)) {
-					rangeFilter.$lte = maxValue;
-				}
+				if (minValue > 0) rangeFilter.$gte = minValue;
+				if (!isNaN(maxValue)) rangeFilter.$lte = maxValue;
 
 				if (Object.keys(rangeFilter).length > 0) {
 					if (filter.$or) {
@@ -288,45 +278,85 @@ tenderRoute.get('/all', async (req: Request, res: Response) => {
 			}
 		}
 
-		const query = Tender.find(filter);
+		const isCustomSortField = ['tenderValue', 'emdValue'].includes(
+			sortBy as string,
+		);
+		const sortDir = sortOrder === 'asc' ? -1 : 1;
+		const sortDirDate = sortOrder === 'asc' ? 1 : -1;
 
-		if (sortBy) {
-			const sortOptions: any = {};
-			switch (sortBy) {
-				case 'tenderValue':
-					sortOptions.tenderValue = sortOrder === 'asc' ? -1 : 1;
-					break;
-				case 'epublishedDate':
-					sortOptions.epublishedDate = sortOrder === 'desc' ? -1 : 1;
-					break;
-				case 'bidSubmissionDate':
-					sortOptions.bidSubmissionDate = sortOrder === 'desc' ? -1 : 1;
-					break;
-				case 'bidOpeningDate':
-					sortOptions.bidOpeningDate = sortOrder === 'desc' ? -1 : 1;
-					break;
-				case 'emdValue':
-					sortOptions.EMDAmountin = sortOrder === 'asc' ? -1 : 1;
-					break;
-				default:
-					sortOptions._id = 1;
+		if (isCustomSortField) {
+			const sortField = sortBy === 'emdValue' ? 'EMDAmountin' : 'tenderValue';
+
+			const referMatch = { [sortField]: { $not: { $type: 'number' } } };
+			const numericMatch = { [sortField]: { $type: 'number' } };
+
+			const pipeline: any[] = [
+				{ $match: filter },
+				{
+					$facet: {
+						referDocs: sortDir === -1 ? [{ $match: referMatch }] : [],
+						numericDocs: [
+							{ $match: numericMatch },
+							{ $sort: { [sortField]: sortDir } },
+						],
+						referDocsEnd: sortDir === 1 ? [{ $match: referMatch }] : [],
+					},
+				},
+				{
+					$project: {
+						all: {
+							$concatArrays:
+								sortDir === -1
+									? ['$referDocs', '$numericDocs']
+									: ['$numericDocs', '$referDocsEnd'],
+						},
+					},
+				},
+				{ $unwind: '$all' },
+				{ $replaceRoot: { newRoot: '$all' } },
+			];
+
+			if (offset) pipeline.push({ $skip: Number(offset) });
+			if (limit) pipeline.push({ $limit: Number(limit) });
+
+			const tenders = await Tender.aggregate(pipeline);
+			const count = await Tender.countDocuments(filter);
+
+			return res.status(200).json({
+				message: 'Tenders fetched successfully.',
+				result: tenders,
+				count,
+				code: 200,
+			});
+		} else {
+			const query = Tender.find(filter);
+
+			if (sortBy) {
+				const sortOptions: any = {};
+				if (sortBy === 'tenderValue') {
+					sortOptions.tenderValue = sortDir;
+				} else if (sortBy === 'emdValue') {
+					sortOptions.EMDAmountin = sortDir;
+				} else {
+					sortOptions[sortBy as string] = sortDirDate;
+				}
+				query.sort(sortOptions);
 			}
-			query.sort(sortOptions);
+
+			if (limit && offset) {
+				query.skip(Number(offset)).limit(Number(limit));
+			}
+
+			const tenders = await query;
+			const count = await Tender.countDocuments(filter);
+
+			return res.status(200).json({
+				message: 'Tenders fetched successfully.',
+				result: tenders,
+				count,
+				code: 200,
+			});
 		}
-
-		if (limit && offset) {
-			query.skip(Number(offset)).limit(Number(limit));
-		}
-
-		const tenders = await query;
-		const count = await Tender.countDocuments(filter);
-
-		res.status(200).json({
-			message: 'Tenders fetched successfully.',
-			result: tenders,
-			count,
-			code: 200,
-		});
 	} catch (error) {
 		console.error('Error fetching tenders:', error);
 		res.status(500).json({
