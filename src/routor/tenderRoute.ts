@@ -7,6 +7,10 @@ const tenderRoute = express.Router();
 import jwt from 'jsonwebtoken';
 import contactModel from '../model/contact.model';
 import { TenderValueEnum } from '../enums';
+import { TenderRequest_template } from '../template/tender-req-template';
+import { transporter } from '../nodemailer';
+const User = require('../model/user.model');
+
 const generateRandomNumber = (min: number, max: number): number => {
 	return Math.floor(Math.random() * (max - min + 1) + min);
 };
@@ -552,28 +556,79 @@ tenderRoute.post(
 	'/tenderRequest',
 	authenticateUser,
 	async (req: any, res: Response) => {
-		const { data } = req.body;
-		const userId = req.user.userId;
+		try {
+			const { data } = req.body;
+			const userId = req.user.userId;
 
-		const tenderReq = new TenderRequest({
-			tenderTitle: data.tenderName,
-			tenderId: data.TenderId,
-			district: data.district,
-			state: data.state,
-			location: data.location,
-			bidSubmissionDate: data.bidSubmissionDate,
-			tenderValue: data.tenderValue,
-			refNo: data.refNo,
-			industry: data.industry,
-			address: data.address,
-			userId,
-		});
-		await tenderReq.save();
+			const user = await User.findById(userId).select('name email');
+			if (!user) {
+				return res.status(404).json({
+					message: 'User not found.',
+				});
+			}
 
-		return res.status(200).json({
-			message: 'Tender mapping created successfully.',
-			result: tenderReq,
-		});
+			const tenderReq = new TenderRequest({
+				tenderTitle: data.tenderName,
+				tenderId: data.TenderId,
+				district: data.district,
+				state: data.state,
+				location: data.location,
+				bidSubmissionDate: data.bidSubmissionDate,
+				tenderValue: data.tenderValue,
+				refNo: data.refNo,
+				industry: data.industry,
+				address: data.address,
+				userId,
+			});
+
+			await tenderReq.save();
+
+			const emailData = {
+				tenderTitle: data.tenderName,
+				tenderId: data.TenderId,
+				district: data.district,
+				state: data.state,
+				location: data.location,
+				bidSubmissionDate: data.bidSubmissionDate,
+				tenderValue: data.tenderValue,
+				refNo: data.refNo,
+				industry: data.industry,
+				address: data.address,
+				userId,
+				userName: user.name,
+				userEmail: user.email,
+			};
+
+			const emailHtml = TenderRequest_template(emailData);
+
+			try {
+				const mailOptions = {
+					from: process.env.FROM_EMAIL || 'noreply@tenderonline.in',
+					to: 'tenderexecutive@tenderonline.co.in',
+					subject: `New Tender Request from ${user.name}: ${
+						data.tenderName || 'Tender Request'
+					}`,
+					html: emailHtml,
+				};
+
+				await transporter.sendMail(mailOptions);
+
+				console.log('Email notification sent successfully');
+			} catch (emailError) {
+				console.error('Error sending email notification:', emailError);
+			}
+
+			return res.status(200).json({
+				message: 'Tender mapping created successfully.',
+				result: tenderReq,
+			});
+		} catch (error) {
+			console.error('Error creating tender request:', error);
+			return res.status(500).json({
+				message: 'Failed to create tender request.',
+				error: error.message,
+			});
+		}
 	},
 );
 
