@@ -186,28 +186,28 @@ tenderRoute.get('/all', async (req: Request, res: Response) => {
 				.split(',')
 				.map((keyword) => keyword.trim());
 			filter.$or = keywords.flatMap((keyword) => [
-				{ tenderName: { $regex: keyword, $options: 'i' } },
-				{ description: { $regex: keyword, $options: 'i' } },
-				{ TenderId: { $regex: keyword, $options: 'i' } },
-				{ refNo: { $regex: keyword, $options: 'i' } },
-				{ department: { $regex: keyword, $options: 'i' } },
-				{ subDepartment: { $regex: keyword, $options: 'i' } },
+				// { tenderName: { $regex: keyword, $options: 'i' } },
+				// { description: { $regex: keyword, $options: 'i' } },
+				// { TenderId: { $regex: keyword, $options: 'i' } },
+				// { refNo: { $regex: keyword, $options: 'i' } },
+				// { department: { $regex: keyword, $options: 'i' } },
+				// { subDepartment: { $regex: keyword, $options: 'i' } },
 				{ location: { $regex: keyword, $options: 'i' } },
-				{ industry: { $regex: keyword, $options: 'i' } },
-				{ subIndustry: { $regex: keyword, $options: 'i' } },
-				{ classification: { $regex: keyword, $options: 'i' } },
-				{ status: { $regex: keyword, $options: 'i' } },
+				// { industry: { $regex: keyword, $options: 'i' } },
+				// { subIndustry: { $regex: keyword, $options: 'i' } },
+				// { classification: { $regex: keyword, $options: 'i' } },
+				// { status: { $regex: keyword, $options: 'i' } },
 				{ WorkDescription: { $regex: keyword, $options: 'i' } },
-				{ address: { $regex: keyword, $options: 'i' } },
-				{ state: { $regex: keyword, $options: 'i' } },
-				...(isNaN(Number(keyword))
-					? []
-					: [
-							{ tenderValue: Number(keyword) },
-							{ EMDAmountin: Number(keyword) },
-							{ pinCode: Number(keyword) },
-							{ TenderId: Number(keyword) },
-					  ]),
+				// { address: { $regex: keyword, $options: 'i' } },
+				// { state: { $regex: keyword, $options: 'i' } },
+				// ...(isNaN(Number(keyword))
+				// 	? []
+				// 	: [
+				// 			{ tenderValue: Number(keyword) },
+				// 			{ EMDAmountin: Number(keyword) },
+				// 			{ pinCode: Number(keyword) },
+				// 			{ TenderId: Number(keyword) },
+				// 	  ]),
 			]);
 		}
 
