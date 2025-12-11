@@ -1,10 +1,9 @@
-import express, { Express, Request, Response, NextFunction } from "express";
-import dotenv from "dotenv";
-import mongoose from "mongoose";
-import cors from "cors";
-import bodyParser from "body-parser";
+import cors from 'cors';
+import dotenv from 'dotenv';
+import express, { Express, Request, Response } from 'express';
+import mongoose from 'mongoose';
 
-const routor = require("./routor/route");
+const routor = require('./routor/route');
 
 dotenv.config();
 
@@ -13,11 +12,11 @@ mongoose.connect(MONGODB_URI, {});
 
 const connectToMongoDB = mongoose.connection;
 connectToMongoDB.on(
-  "error",
-  console.error.bind(console, "MongoDB connection error:")
+	'error',
+	console.error.bind(console, 'MongoDB connection error:'),
 );
-connectToMongoDB.once("open", () => {
-  console.log("Connected to MongoDB");
+connectToMongoDB.once('open', () => {
+	console.log('Connected to MongoDB');
 });
 
 const app: Express = express();
@@ -51,19 +50,19 @@ app.use(cors());
 // );
 
 // Middleware to parse JSON and URL-encoded data
-app.use(bodyParser.json({ limit: "500mb" }));
-app.use(bodyParser.urlencoded({ limit: "500mb", extended: true }));
-app.use(express.static("public"));
+app.use(express.json({ limit: '500mb' }));
+app.use(express.urlencoded({ limit: '500mb', extended: true }));
+app.use(express.static('public'));
 
 // Apply the authenticateUser middleware to all routes starting with '/api'
-app.use("/api", routor);
+app.use('/api', routor);
 
 // Health check route
-app.get("/", (req: Request, res: Response) => {
-  res.send("Express + TypeScript Server");
+app.get('/', (req: Request, res: Response) => {
+	res.send('Express + TypeScript Server');
 });
 
 // Start the server
-app.listen(4500, "0.0.0.0", () => {
-  console.log(`[server]: Server is running at http://localhost:${port}`);
+app.listen(4500, '0.0.0.0', () => {
+	console.log(`[server]: Server is running at http://localhost:${port}`);
 });
